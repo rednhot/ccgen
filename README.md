@@ -5,7 +5,9 @@ Sometimes we would want to create lots of output files, no matter from which sta
 
 For example, you have a C source file, _source.c_, and you need to produce object files with and without debug symbols, x86 and x86_64 versions, position independent and position dependent. How would you do it? The first thing that comes to mind is to run many times compilation with different options like that:
     cc -c -g -no-pie -m32 -o source_debug_nopie_32.o hello.c
+    
     cc -c -g -no-pie -m64 -o source_debug_nopie_64.o hello.c
+    
     cc -c -g -m32 -o source_debug_pie_32.o hello.c
     cc -c -g -m64 -o source_debug_pie_64.o hello.c
     cc -c -no-pie -m32 -o source_nodebug_nopie_32.o hello.c
