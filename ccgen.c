@@ -377,7 +377,7 @@ void print_help(const char *prog)
 {
   printf("Usage: %s [options]... file...\n", prog);
   printf("Options:\n"
-	 "-l <log_file>\t\t\tSend all output to <log_file>. Optional.\n"
+	 "-l <log_file>\t\t\tSend all output to <log_file>.\n"
 	 "-x <backend>\t\t\tBackend name.\n"
 	 "-o <option_spec>\t\tOption specification.\n"
 	 "-b <base_file>\t\t\tOutput file base name.\n"
