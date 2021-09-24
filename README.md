@@ -28,16 +28,16 @@ Adding a new option with _ccgen_ is much simpler and shorter, than doing the sam
 That is, we achieve scalability.
 
 # Synopsis
-  ccgen [-l logfile]
-        [-x backend]
-	[-b outfile_base]
-	[-e extension]
-	[-o option_spec]...
-	args...
+    ccgen [-l logfile]
+          [-x backend]
+	  [-b outfile_base]
+	  [-e extension]
+	  [-o option_spec]...
+	  args...
 
-  ccgen -h
+    ccgen -h
 
-  ccgen -v
+    ccgen -v
 
 # Description
 
