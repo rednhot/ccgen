@@ -14,7 +14,7 @@ For example, you have a C source file, _source.c_, and you need to produce objec
     cc -c -m32 -o source_nodebug_pie_32.o hello.c
     cc -c -m64 -o source_nodebug_pie_64.o hello.c
 
-Lots of typing, isn't it?
+A lot of typing, isn't it?
 That is how you can do it with _ccgen_:
 
     ccgen -e o \
