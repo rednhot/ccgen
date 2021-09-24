@@ -13,10 +13,6 @@
   You pass options to _ccgen_, and after a little bit transformation it will
   run backend with the options specified.
 
-
-  :) editing experimental branch
-  another edit
-
   :::Command-line options:::
   -b outfile_base
       Choose output file base name. By default it's empty(backend defaults will be used).
