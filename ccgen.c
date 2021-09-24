@@ -3,26 +3,40 @@
   _ccgen_ is a universal frontend utility.
 
   :::Synopsis:::
-  ccgen [-b outfile_base] [-x backend] [-o option_spec]... [args]...
+  ccgen [-l logfile]
+        [-x backend]
+        [-b outfile_base]
+	[-e extension]
+	[-o option_spec]... [args]...
+
+  ccgen -h
+
+  ccgen -v
 
   :::Description:::
   _ccgen_ is some type of a frontend to underlying customizable backend.
   It is particularly useful to use a compiler as a backend,
-  effectively generating a lot of files, each of which will be compiled with different options
+  effectively generating a lot of files, each of which will be compiled with different options.
 
   You pass options to _ccgen_, and after a little bit transformation it will
-  run backend with the options specified.
+  run backend with the specified options.
 
   :::Command-line options:::
   -b outfile_base
       Choose output file base name. By default it's empty(backend defaults will be used).
 
   -x backend
-      Choose backend, which ccgen will run and pass options to.
-      Defaults to cc.
+      Choose backend, which _ccgen_ will run and pass options and arguments to.
+      Defaults to _cc_.
 
   -o option_spec
       Option specification. 
+      _option_spec_ is a comma seperated list, which is logically divided in groups of two, each of which
+      specify one possible value for an option. The first element(fname, or formal name) of a group is mandatory,
+      and it's copied as it is to a backend. The second element(iname, or informal name)  of a group is optional,
+      and it specifies meaning of an option for humans, which is used in output file name.
+
+      If the second field of a group is missing, it is set to empty string.
 
   -l log_file
       File, to which all of the logs will be sent.
@@ -32,6 +46,29 @@
 
   -v
       Print version and exit.
+
+  -- 
+      Stop processing options. That is, all after that will be though of as of arguments, even
+      if it is started with -(dash).
+
+  args... 
+      Remaining arguments. All are passed to backend without change.
+
+  :::Example:::
+  ccgen -e .o		      \
+        -b source	      \
+	-o -c                 \
+	-o -g,debug,,nodebug  \
+	-o -m32,32,-m64,64    \
+	source.c
+
+  This will effectively generate following object files:
+  source_debug_32.o, source_debug_64.o, source_nodebug_32.o, source_nodebug_64.o
+	
+  Name of files correspond to their contents, that is _source_debug_32.o_ contains
+  object code for (home) 32 bit architecture with debug symbols, _source_nodebug_64. - 
+  64 bit architecture without debug symbols, and so on.
+
   :::Return value:::
   0 on success. Some negative value otherwise. */
   
@@ -53,28 +90,10 @@
 #define MAX_OPTION_VALUES  (10)
 
 /* helping functions */
-void error_exit(const char *fmt, ...)
-{
-  va_list ap;
-  va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
-  va_end(ap);
 
-  exit(EXIT_FAILURE);
-}
+void error_exit(const char*,...);
 
-void errno_exit(const char *fmt, ...)
-{
-  va_list ap;
-  va_start(ap, fmt);
-  
-  perror("");
-  vfprintf(stderr, fmt, ap);
-
-  va_end(ap);
-
-  exit(EXIT_FAILURE);
-}
+void errno_exit(const char*,...);
 
 /* @function str_write
 
@@ -89,23 +108,7 @@ void errno_exit(const char *fmt, ...)
    updated to point to the final null-terminator.
 
    Otherwise, ccgen is exited with some negative return code. */
-
-void str_write(char *str, int *ind, size_t n, const char *fmt, ...)
-{
-  int ch_cnt;
-
-  va_list ap;
-  va_start(ap, fmt);
-
-  ch_cnt = vsnprintf(str + *ind, n, fmt, ap);
-
-  if (ch_cnt >= n)
-    error_exit("Attempt to buffer overflow encountered");
-
-  *ind = *ind + ch_cnt;
-  
-  va_end(ap);
-}
+void str_write(char *str, int *ind, size_t n, const char *fmt, ...);
 
 /*
   @struct option_value
@@ -142,24 +145,17 @@ struct option
 };
 
 
-/* global variables definitions */
-static struct option passed_options[MAX_OPTIONS];
-static int cur_set[MAX_OPTIONS], option_count = 0, arg_count = 0;
-static char *backend = "cc";
-static char *outfile_base = NULL; /* if this field is NULL, then we don't explicitly
-				     specify output file, so we use backend's defaults */
-
-static char *arguments[MAX_ARGS],
-  cmd_buf[MAX_COMMAND_LEN],
-  file_buf[MAX_FILENAME_LEN];
-static char *logfile = NULL;
-static const char * const ccgen_version = "1.0";
-
 /* 
    @function parse_input
 
    :::Summary:::
    Parses input.
+
+  :::Notes:::
+  Note that the function is implemented through _getopt_ function,
+  instead of _argp_, because the latter is non-standard, despite being
+  more easy-to-use.
+
 */
 void parse_input(int, char **);
 
@@ -180,7 +176,7 @@ int call_backend(const char *);
 
   :::Summary:::
   Iterates through all possible
-  combinations of options and their opposites
+  combinations of options and their values.
 */
 void doTheJob(int);
 
@@ -191,11 +187,26 @@ void doTheJob(int);
   :::Summary:::
   Prints help message.
 
-  Argument should be the name
+  The argument should be the name
   of the program, when it was invoked.
 */
 void print_help(const char*);
 
+
+/* global variables definitions */
+static struct option passed_options[MAX_OPTIONS]; /* array of options that eventually will be passed to a backend */
+static int cur_set[MAX_OPTIONS], option_count = 0, arg_count = 0;
+static char *backend = "cc";
+static char *outfile_base = NULL; /* if this field is NULL(not changed with command-line arguments,
+				     then we don't explicitly specify output file, 
+				     so we use backend's defaults */
+
+static char *arguments[MAX_ARGS], /* passed_arguments */
+  cmd_buf[MAX_COMMAND_LEN],       /* command formation buffer */
+  file_buf[MAX_FILENAME_LEN];     /* filename formation buffer */
+static char *logfile = NULL;      /* If it's non-NULL, redirect all output to that file */
+static char *extension = NULL;    /* If it's NULL, no extension is appended to output filename. */
+static const char * const ccgen_version = "1.0"; /* Current _ccgen_ version */
 
 
 
@@ -219,7 +230,7 @@ int main(int argc, char *argv[])
 
   exit(EXIT_SUCCESS);
 }
-/* ------------MAIN END----------- */
+/* ----------MAIN END----------- */
 
 
 
@@ -230,15 +241,15 @@ void parse_input(int argc, char *argv[])
   struct option tmp_option, *cur;
 
   opterr = 0;
-  while ((c = getopt(argc, argv, ":vhb:o:x:l:")) != -1)
+  while ((c = getopt(argc, argv, ":vhb:x:l:e:o:")) != -1)
     {
       switch(c)
 	{
-	case 'v':
+	case 'v': /* version information is needed */
 	  printf("ccgen %s\n", ccgen_version);
 	  exit(EXIT_SUCCESS);
 	  break;
-	case 'h':
+	case 'h': /* help information is needed */
 	  print_help(argv[0]);
 	  exit(EXIT_SUCCESS);
 	  break;
@@ -250,6 +261,9 @@ void parse_input(int argc, char *argv[])
 	  break;
 	case 'l': /* logging to some file */
 	  logfile = optarg;
+	  break;
+	case 'e': /* output filename's extension */
+	  extension = optarg;
 	  break;
 	case 'o': /* some option which we ultimately
 		     pass to an underlying program */
@@ -329,10 +343,17 @@ void doTheJob(int opt)
 	}
 
       if (outfile_base)
-	str_write(cmd_buf,
+	{
+	  if (extension)
+	    str_write(file_buf,
+		      &file_ind,
+		      MAX_FILENAME_LEN - file_ind,
+		      ".%s", extension);
+	  str_write(cmd_buf,
 		  &cmd_ind,
 		  MAX_COMMAND_LEN - cmd_ind,
 		  " -o %s", file_buf);
+	}
       
       for (i = 0; i < arg_count; ++i)
 	str_write(cmd_buf,
@@ -362,4 +383,44 @@ void print_help(const char *prog)
 	 "-b <base_file>\t\t\tOutput file base name.\n"
 	 "-h\t\t\t\tDisplay this help.\n"
 	 "-v\t\t\t\tDisplay version information\n");
+}
+
+void error_exit(const char *fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+
+  exit(EXIT_FAILURE);
+}
+
+void errno_exit(const char *fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  
+  perror("");
+  vfprintf(stderr, fmt, ap);
+
+  va_end(ap);
+
+  exit(EXIT_FAILURE);
+}
+
+void str_write(char *str, int *ind, size_t n, const char *fmt, ...)
+{
+  int ch_cnt;
+
+  va_list ap;
+  va_start(ap, fmt);
+
+  ch_cnt = vsnprintf(str + *ind, n, fmt, ap);
+
+  if (ch_cnt >= n)
+    error_exit("Attempt to buffer overflow encountered");
+
+  *ind = *ind + ch_cnt;
+  
+  va_end(ap);
 }
