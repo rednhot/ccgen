@@ -1,43 +1,49 @@
-# ccgen
-Universal compiler frontend
+# ccgen - Universal compiler frontend
 
 Sometimes we would want to create lots of output files, no matter from which stage of a compiler they're from, be it preprocessor, code generation, assembly or linker stage.
 
 For example, you have a C source file, _source.c_, and you need to produce object files with and without debug symbols, x86 and x86_64 versions, position independent and position dependent. How would you do it? The first thing that comes to mind is to run many times compilation with different options like that:
     
-    cc -c -g -no-pie -m32 -o source_debug_nopie_32.o hello.c
-    cc -c -g -no-pie -m64 -o source_debug_nopie_64.o hello.c
-    cc -c -g -m32 -o source_debug_pie_32.o hello.c
-    cc -c -g -m64 -o source_debug_pie_64.o hello.c
-    cc -c -no-pie -m32 -o source_nodebug_nopie_32.o hello.c
-    cc -c -no-pie -m64 -o source_nodebug_nopie_64.o hello.c
-    cc -c -m32 -o source_nodebug_pie_32.o hello.c
-    cc -c -m64 -o source_nodebug_pie_64.o hello.c
+``` shell
+cc -c -g -no-pie -m32 -o source_debug_nopie_32.o hello.c
+cc -c -g -no-pie -m64 -o source_debug_nopie_64.o hello.c
+cc -c -g -m32 -o source_debug_pie_32.o hello.c
+cc -c -g -m64 -o source_debug_pie_64.o hello.c
+cc -c -no-pie -m32 -o source_nodebug_nopie_32.o hello.c
+cc -c -no-pie -m64 -o source_nodebug_nopie_64.o hello.c
+cc -c -m32 -o source_nodebug_pie_32.o hello.c
+cc -c -m64 -o source_nodebug_pie_64.o hello.c
+```
 
 A lot of typing, isn't it?
 That is how you can do it with _ccgen_:
 
-    ccgen -e o \
-          -b source \
-          -o -c -o -g,debug,,nodebug \
-          -o -no-pie,nopie,,pie \
-          -o -m32,32,-m64,64 \
-          source.c
+``` shell
+ccgen -e o \
+	  -b source \
+	  -o -c -o -g,debug,,nodebug \
+	  -o -no-pie,nopie,,pie \
+	  -o -m32,32,-m64,64 \
+	  source.c
+```
 
 Adding a new option with _ccgen_ is much simpler and shorter, than doing the same manually.
 That is, we achieve scalability.
 
 # Synopsis
-    ccgen [-l logfile]
-          [-x backend]
+
+``` shell
+ccgen [-l logfile]
+	  [-x backend]
 	  [-b outfile_base]
 	  [-e extension]
 	  [-o option_spec]...
 	  args...
 
-    ccgen -h
+ccgen -h
 
-    ccgen -v
+ccgen -v
+```
 
 # Description
 
